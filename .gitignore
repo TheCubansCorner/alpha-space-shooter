@@ -5,3 +5,9 @@ assets/power_form.png
 assets/speed_form.png
 assets/spread_form.png
 __pycache__/weapons.cpython-310.pyc
+test.py
+__pycache__/target_cursor.cpython-310.pyc
+__pycache__/spread_beam.cpython-310.pyc
+__pycache__/power_beam.cpython-310.pyc
+power_beam.py
+assets/target.png
