@@ -11,3 +11,16 @@ __pycache__/spread_beam.cpython-310.pyc
 __pycache__/power_beam.cpython-310.pyc
 power_beam.py
 assets/target.png
+assets/alpha-assets/enemy_ship.png
+assets/alpha-assets/power_form.png
+assets/alpha-assets/speed_form.png
+assets/alpha-assets/spread_form.png
+assets/alpha-assets/target.png
+assets/player_sprites/beams/power_beam_spritesheet.png
+assets/player_sprites/beams/speed_beam_spritesheet.png
+assets/player_sprites/beams/speed_spread_spritesheet.png
+assets/player_sprites/beams/spread_beam.png
+assets/player_sprites/idle/ship_spritesheet.png
+assets/player_sprites/idle/spread_form.png
+assets/player_sprites/idle/spread_form_idle.gif
+background2.png

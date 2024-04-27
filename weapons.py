@@ -5,8 +5,6 @@ import sys, os, time
 from ursina import *
 
 #!TODO: -- go through Exceptions and create a log for tracking bugs
-#!TODO: -- Beam seems to not generate at the current player point
-
 
 class RegularBeam(Entity):
     def __init__(self, player: Entity) -> None:                 # -- Initiates the Regular beam Entity
@@ -30,10 +28,11 @@ class RegularBeam(Entity):
 
     def firingWeapon(self) -> None:                     # -- Controls beams forward movement
         for beam in self.player.beams:
-            self.z = self.player.z
-            beam.x += beam.dx * time.dt
-            beam.y += beam.dy * time.dt
-            self.checkDistance(beam)
+            if type(beam) != list:
+                self.z = self.player.z
+                beam.x += beam.dx * time.dt
+                beam.y += beam.dy * time.dt
+                self.checkDistance(beam)
 
     def checkDistance(self, beam):                      # -- Checks distance between orgin and current position/removes beam if distance is to far
         differenceX = beam.x - self.beamOrgin.x
@@ -71,10 +70,11 @@ class SpeedBeam(Entity):
     def firingWeapon(self) -> None:                         # -- Controls beams forward movement
         try:
             for beam in self.player.beams:
-                self.z = self.player.z
-                beam.x += beam.dx * time.dt
-                beam.y += beam.dy * time.dt  
-                self.checkDistance(beam)  
+                if type(beam) != list:
+                    self.z = self.player.z
+                    beam.x += beam.dx * time.dt
+                    beam.y += beam.dy * time.dt  
+                    self.checkDistance(beam)  
         except Exception as e:
             print(e)
 
@@ -108,12 +108,14 @@ class SpreadBeam(Entity):
 
         self.player = player
         self.damage: int = 2
-        self.energyConsumption: float = 1
+        self.energyConsumption: float = 2
         self.slug: list = []
         self.rotationModifier = 45
         self.dx = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
         self.dy = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
         self.beamOrgin: Vec3 = self.position
+        self.position.x = self.position.x + ((0.8 * math.sin(self.rotation_z / 180 * math.pi) * 0.5))
+        self.position.y = self.position.y + ((0.8 * math.cos(self.rotation_z / 180 * math.pi) * 0.5))
 
     def firingWeapon(self) -> None:
         for slug in self.player.beams:
@@ -126,8 +128,8 @@ class SpreadBeam(Entity):
         for inx, slug in enumerate(self.player.beams):
             if type(slug) == list:
                 for beam in slug:
-                    differenceX = beam.x - self.beamOrgin.x
-                    differenceY = beam.y - self.beamOrgin.y
+                    differenceX = beam.position.x - self.beamOrgin.x
+                    differenceY = beam.position.y - self.beamOrgin.y
             
                     if differenceX >= 10 or differenceX <= -10 or differenceY >= 10 or differenceY <= -10:
                         self.player.beams[inx].remove(beam)
@@ -158,9 +160,10 @@ class PowerBeam(Entity):
         self.energyConsumption: float = 2.0
         self.dx = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
         self.dy = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
-        self.x = self.dx * 7
-        self.y = self.dy * 7
+        self.position.x = self.dx * 7
+        self.position.y = self.dy * 7
         self.beamOrgin: Vec3 = self.position
+        
 
     def adjustPlacement(self) -> None:
         x = self.player.position.x + ((0.8 * math.sin(self.rotation_z / 180 * math.pi) * 7))
