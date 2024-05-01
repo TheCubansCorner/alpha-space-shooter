@@ -17,6 +17,7 @@ class RegularBeamAnimator(SpriteSheetAnimation):
         self.tileset_size: list = [4, 1]
         self.fps: int = 8
 
+        self.type: str = "regular"
         self.dx: float = 0.8 * math.sin(beam.player.rotation_z / 180 * math.pi)
         self.dy: float = 0.8 * math.cos(beam.player.rotation_z / 180 * math.pi)
         self.position.x = self.dx * 7
@@ -40,12 +41,14 @@ class PowerBeamAnimator(SpriteSheetAnimation):
         self.tileset_size: list = [6, 1]
         self.fps: int = 6
 
+        self.type: str = "power"
         self.dx: float = 0.8 * math.sin(beam.player.rotation_z / 180 * math.pi)
         self.dy: float = 0.8 * math.cos(beam.player.rotation_z / 180 * math.pi)
         self.position.x = self.dx * 7
         self.position.y = self.dy * 7
         self._always_on_top = True
         self.play_animation("power")
+
 
 class SpeedBeamAnimator(SpriteSheetAnimation):
     def __init__(self, beam: Entity = Entity(), *kwargs) -> None:           # Initiates Weapons animation spritesheet 
@@ -59,12 +62,14 @@ class SpeedBeamAnimator(SpriteSheetAnimation):
         self.tileset_size: list = [6, 1]
         self.fps: int = 6
 
+        self.type: str = "speed"
         self.dx: float = 0.8 * math.sin(beam.player.rotation_z / 180 * math.pi)
         self.dy: float = 0.8 * math.cos(beam.player.rotation_z / 180 * math.pi)
         self.position.x = self.dx * 7
         self.position.y = self.dy * 7
         self._always_on_top = True
         self.play_animation("speed")
+
 
 class SpreadBeamAnimator(SpriteSheetAnimation):
     def __init__(self, beam: Entity = Entity(), *kwargs) -> None:
@@ -78,6 +83,7 @@ class SpreadBeamAnimator(SpriteSheetAnimation):
         self.tileset_size: list = [6, 1]
         self.fps: int = 6
 
+        self.type: str = "spread"
         self.dx: float = 0.8 * math.sin(beam.player.rotation_z / 180 * math.pi)
         self.dy: float = 0.8 * math.cos(beam.player.rotation_z / 180 * math.pi)
         self.position.x = self.dx * 7

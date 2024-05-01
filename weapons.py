@@ -2,7 +2,9 @@
 #! weapons.py -- entities for different beam variations
 
 import sys, os, time
+
 from ursina import *
+
 from weapon_animator import PowerBeamAnimator, SpeedBeamAnimator, SpreadBeamAnimator, RegularBeamAnimator
 
 
@@ -25,11 +27,10 @@ class RegularBeam(Entity):
         self.dy = 0.8 * math.cos(self.rotation_z / 180 * math.pi)
         self.damage: int = 1
         self.beamOrgin = self.position
-
-        # TODO: Create delay between shots
-        # TODO: Figure out issue with blast starting out slow
         self.beamAnimation = RegularBeamAnimator(beam = self)
 
+        # TODO: Figure out issue with blast starting out slow
+        
     def firingWeapon(self) -> None:                     # -- Controls beams forward movement
         for beam in self.player.beams:
             if type(beam) != list:
@@ -50,7 +51,6 @@ class RegularBeam(Entity):
             except Exception as e:
                 print(e.__traceback__, "args =", e.args)
             
-
     def update(self) -> None:                           # -- runs once a frame
         self.firingWeapon()
 
@@ -72,7 +72,7 @@ class SpeedBeam(Entity):
 
         self.player = player
         self.beamType = "speed"
-        self.damage: int = 1
+        self.damage: int = 2
         self.energyConsumption = 1
         self.dx = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
         self.dy = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
@@ -106,8 +106,13 @@ class SpeedBeam(Entity):
         except Exception as e:
             print(e.__traceback__, "args =", e.args)
 
+    def energyDrain(self) -> None:
+        if self.player.speedTimerActive:
+            self.player.energy -= self.energyConsumption
+
     def update(self) -> None:                               # -- Runs once per frame
         self.firingWeapon()
+        invoke(self.energyDrain, delay = 3)
 
         if not self.visible:
             try:
@@ -125,7 +130,7 @@ class SpreadBeam(Entity):
         self.collider: str = "quad"
         self.scale: tuple = (0.2, 0.2)
         self.position: Vec3 = player.position
-        self.z: float = 2
+        self.z: float = 1
         self.rotation_z = player.rotation_z
         self._always_on_top = False
         self.color = color.rgba(0, 0, 0, 0)
@@ -133,7 +138,7 @@ class SpreadBeam(Entity):
         self.player = player                    # - Personal variables
         self.beamType = "spread"
         self.damage: int = 2
-        self.energyConsumption: float = 2
+        self.energyConsumption: float = 1
         self.dx = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
         self.dy = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
         self.beamOrgin: Vec3 = self.position
@@ -188,14 +193,14 @@ class PowerBeam(Entity):
         self.z: float = player.z
         self.rotation_z = player.rotation_z
         self._always_on_top = False
-        self.visible
+        self.visible = True
         self.texture = os.path.join("assets", "player_sprites", "beams", "alpha_model.png")
         self.color = color.rgba(0, 0, 0, 0)
 
         self.player = player
         self.beamType: str = 'power'
         self.damage: int = 5
-        self.energyConsumption: float = 2.0
+        self.energyConsumption: float = 1
         self.dx = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
         self.dy = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
         self.position.x = self.dx 
@@ -203,38 +208,16 @@ class PowerBeam(Entity):
         self._always_on_top = False
         self.beamAnimation = PowerBeamAnimator(beam = self)
 
-        ###TEST###
-        #self.collider.visible = True
-        ###TEST###
-
-    def configPlayerSprite(self) -> None:
-        self.player.basic_graphics.texture = self.player.baseSprites["powerBeamShip"]
-        self.player.basic_graphics.tileset_size = self.player.tilesetSize["powerBeamShip"]
-        self.player.basic_graphics.fps = self.player.fps["powerBeamShip"]
-        self.player.basic_graphics.animations = self.player.spriteCommands["powerBeamShip"]
-        self.player.basic_graphics.scale = 1
-        self.player.basic_graphics.position.x = self.dx
-        self.player.basic_graphics.position.y = self.dy
-
     def adjustPlacement(self) -> None:
         x = self.player.position.x + ((0.8 * math.sin(self.player.rotation_z / 180 * math.pi) * 7))
         y = self.player.position.y + ((0.8 * math.cos(self.player.rotation_z / 180 * math.pi) * 7))
         z = self.player.position.z
         self.position = Vec3(x, y, z)
         self.rotation_z = self.player.rotation_z
-        self.player.energy -= self.energyConsumption
 
     def beamEnd(self) -> None:
         self.disable = True
         self.visible = False
-        self.player.basic_graphics.texture = self.player.baseSprites["idle"]
-        self.player.basic_graphics.tileset_size = self.player.tilesetSize["idle"]
-        self.player.basic_graphics.fps = self.player.fps["idle"]
-        self.player.basic_graphics.animations = self.player.spriteCommands["idle"]
-        self.player.basic_graphics.scale = 1
-        self.player.basic_graphics.position.x = self.dx * 7
-        self.player.basic_graphics.position.y = self.dy * 7
-        self.player.basic_graphics.play_animation('power')
 
         for beam in self.player.beams:      # <- I guess this error is wrong str has no attribute .finished()
             if type(beam) != list:
@@ -246,18 +229,26 @@ class PowerBeam(Entity):
                     print(e)
                     print(e.args)
 
+    def energyDrain(self) -> None:
+        if self.player.powerTimerActive:
+            self.player.energy -= self.energyConsumption
+            print('drain')
+
     def update(self) -> None:
         if self.player.powerTimerActive:
             self.adjustPlacement()
+            invoke(self.energyDrain, delay = 1)
         else:
-            self.beamEnd()
-            destroy(self)
+            try:
+                self.beamEnd()
+                destroy(self)
+            except:
+                pass
         
 
         ###TEST###
                   # <----Continue here
         
-
 
 if __name__ == "__main__":
     app = Ursina()
