@@ -1,7 +1,6 @@
 #! python3, ursina
 #! player_spritesheet.py -- Initiates the Spritesheet for the main character
 
-#!TODO: Set up animation triggers for ship beams
 
 import sys, os
 
@@ -31,6 +30,7 @@ class PlayerAnimator(SpriteSheetAnimation):
         self.beams: list = []
         self.type: str = "player"
         self.currentBeam: str = "regular"
+        self.currentShipFormation = "speed"
 
         self.moving = False                                         # -- Triggers
         self.powerTimerActive = False                               
@@ -58,7 +58,7 @@ class PlayerAnimator(SpriteSheetAnimation):
             "ship" : [6, 1]
         }
 
-    def spriteChangeController(self, spriteType, beamType) -> None:                                     # -- Adjusts active sprite sheets
+    def spriteController(self, spriteType, beamType = None) -> None:                                     # -- Adjusts active sprite sheets
         if spriteType == "idle":                                    # -- Ship idle animations
             self.texture: str = self.spriteTextures["idle"]
             self.animations: dict = self.spriteCommands["idle"]
@@ -86,11 +86,14 @@ class PlayerAnimator(SpriteSheetAnimation):
                 self.beams.append(beam)
                 self.speedTimerActive = True
                 invoke(self.checkTimer, delay = 0.1)
+                self.spriteController("ship", "speed")
 
             if self.currentBeam == "power" and self.energy >= 1 and not self.powerTimerActive:    # -- Power beam
                 self.powerTimerActive = True
                 beamP = PowerBeam(self)
                 self.beams.append(beamP)
+        else:
+            self.spriteController("idle")
 
     def movement(self) -> None:                                                                         # -- Controls player movement
         velocity: Vec2 = Vec2()                     # -- Player movement vector
@@ -147,12 +150,15 @@ class PlayerAnimator(SpriteSheetAnimation):
 
         if key == '1':                  
             self.currentBeam = "speed"
+            self.play_animation(self.currentBeam)
         
         if key == '2':
             self.currentBeam = "spread"
+            self.play_animation(self.currentBeam)
 
         if key == '3':
             self.currentBeam = "power"
+            self.play_animation(self.currentBeam)
 
         if key == "space" and not self.powerTimerActive:                                          # -- Controls Beams (Regular/Spread)
             if self.energy <= 1 or self.currentBeam == "regular":
@@ -170,6 +176,8 @@ class PlayerAnimator(SpriteSheetAnimation):
                     modifiedRotation += 11.25
                 self.beams.append(slug)
                 self.energy -= beam.energyConsumption
+                self.spriteController("ship", "spread")
+
 
         if key == "space up":                                       # -- Cancels Power beam
             self.checkTimer()
@@ -179,6 +187,9 @@ class PlayerAnimator(SpriteSheetAnimation):
         self.weaponControls()
         self.meterChecks()
         
+        if self.powerTimerActive:
+            self.spriteController("ship", "power")
+
 
 if __name__ == "__main__":
     app = Ursina()
