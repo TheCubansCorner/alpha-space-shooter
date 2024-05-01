@@ -24,3 +24,7 @@ assets/player_sprites/idle/ship_spritesheet.png
 assets/player_sprites/idle/spread_form.png
 assets/player_sprites/idle/spread_form_idle.gif
 background2.png
+*.pyc
+assets/alpha_assets/alpha_model.png
+/assets
+background.png
