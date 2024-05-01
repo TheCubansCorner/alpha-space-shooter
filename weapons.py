@@ -9,9 +9,11 @@ from weapon_animator import PowerBeamAnimator, SpeedBeamAnimator, SpreadBeamAnim
 
 
 #!TODO: -- go through Exceptions and create a log for tracking bugs
+#!TODO: -- Figure out why beams start slow unless repeatedly being fired
+#!TODO: -- Create combination beams
 
 class RegularBeam(Entity):
-    def __init__(self, player: Entity) -> None:                 # -- Initiates the Regular beam Entity
+    def __init__(self, player: Entity) -> None:                         # -- Initiates the Regular beam Entity
         super().__init__()
         self.player = player
         self.model: str = "quad"
@@ -31,7 +33,7 @@ class RegularBeam(Entity):
 
         # TODO: Figure out issue with blast starting out slow
         
-    def firingWeapon(self) -> None:                     # -- Controls beams forward movement
+    def firingWeapon(self) -> None:                                     # -- Controls beams forward movement
         for beam in self.player.beams:
             if type(beam) != list:
                 self.z = self.player.z
@@ -39,7 +41,7 @@ class RegularBeam(Entity):
                 beam.y += beam.dy * time.dt
                 self.checkDistance(beam)
 
-    def checkDistance(self, beam):                      # -- Checks distance between orgin and current position/removes beam if distance is to far
+    def checkDistance(self, beam):                                      # -- Checks distance between orgin and current position/removes beam if distance is to far
         differenceX = beam.x - self.beamOrgin.x
         differenceY = beam.y - self.beamOrgin.y
         
@@ -51,7 +53,7 @@ class RegularBeam(Entity):
             except Exception as e:
                 print(e.__traceback__, "args =", e.args)
             
-    def update(self) -> None:                           # -- runs once a frame
+    def update(self) -> None:                                           # -- Updates once a frame
         self.firingWeapon()
 
         if not self.visible:
@@ -82,7 +84,7 @@ class SpeedBeam(Entity):
         self.beamAnimation = SpeedBeamAnimator(beam = self)
         ###TEST###
 
-    def firingWeapon(self) -> None:                         # -- Controls beams forward movement
+    def firingWeapon(self) -> None:                                     # -- Controls beams forward movement
         try:
             for beam in self.player.beams:
                 if type(beam) != list:
@@ -93,7 +95,7 @@ class SpeedBeam(Entity):
         except Exception as e:
             print(e)
 
-    def checkDistance(self, beam) -> None:                        # -- Checks distance between beam and player
+    def checkDistance(self, beam) -> None:                              # -- Checks distance between beam and beams start point
         differenceX = beam.x - self.beamOrgin.x
         differenceY = beam.y - self.beamOrgin.y
         difference = (differenceX, differenceY)
@@ -106,11 +108,11 @@ class SpeedBeam(Entity):
         except Exception as e:
             print(e.__traceback__, "args =", e.args)
 
-    def energyDrain(self) -> None:
+    def energyDrain(self) -> None:                                      # -- Depletes player energy
         if self.player.speedTimerActive:
             self.player.energy -= self.energyConsumption
 
-    def update(self) -> None:                               # -- Runs once per frame
+    def update(self) -> None:                                           # -- Updates once per frame
         self.firingWeapon()
         invoke(self.energyDrain, delay = 3)
 
@@ -124,7 +126,7 @@ class SpeedBeam(Entity):
             
 
 class SpreadBeam(Entity):
-    def __init__(self, player: Entity) -> None:                     # -- Initiates Spread Beam Entity
+    def __init__(self, player: Entity) -> None:                         # -- Initiates Spread Beam Entity
         super().__init__()
         self.model: str = "quad"                # - Built in variables
         self.collider: str = "quad"
@@ -148,14 +150,14 @@ class SpreadBeam(Entity):
         self.rotationModifier = 45
         self.beamAnimation = SpreadBeamAnimator(beam = self)
 
-    def firingWeapon(self) -> None:
+    def firingWeapon(self) -> None:                                     # -- Controls beams forward movement
         for slug in self.player.beams:
             if type(slug) == list:
                 for beam in slug:
                     beam.x += (0.8 * math.sin(beam.rotation_z / 180 * math.pi)) * time.dt
                     beam.y += (0.8 * math.cos(beam.rotation_z / 180 * math.pi)) * time.dt
 
-    def checkDistance(self) -> None:
+    def checkDistance(self) -> None:                                    # -- Checks distance between beam and player and beams start point
         for inx, slug in enumerate(self.player.beams):
             if type(slug) == list:
                 for beam in slug:
@@ -170,7 +172,7 @@ class SpreadBeam(Entity):
                     except Exception as e:
                         print(e.__traceback__, "args =", e.args)
 
-    def update(self) -> None:
+    def update(self) -> None:                                           # -- Updates once per frame
         self.firingWeapon()
         self.checkDistance()
 
@@ -184,7 +186,7 @@ class SpreadBeam(Entity):
 
 
 class PowerBeam(Entity):
-    def __init__(self, player: Entity) -> None:                     # -- Initiates Power Beam Entity
+    def __init__(self, player: Entity) -> None:                         # -- Initiates Power Beam Entity
         super().__init__()
         self.model: str = "quad"
         self.collider: str = "box"
@@ -208,14 +210,14 @@ class PowerBeam(Entity):
         self._always_on_top = False
         self.beamAnimation = PowerBeamAnimator(beam = self)
 
-    def adjustPlacement(self) -> None:
+    def adjustPlacement(self) -> None:                                  # -- Adjusts beam position to match player sprite rotation/placement
         x = self.player.position.x + ((0.8 * math.sin(self.player.rotation_z / 180 * math.pi) * 7))
         y = self.player.position.y + ((0.8 * math.cos(self.player.rotation_z / 180 * math.pi) * 7))
         z = self.player.position.z
         self.position = Vec3(x, y, z)
         self.rotation_z = self.player.rotation_z
 
-    def beamEnd(self) -> None:
+    def beamEnd(self) -> None:                                          # -- Triggers when beam is deactivated
         self.disable = True
         self.visible = False
 
@@ -229,12 +231,12 @@ class PowerBeam(Entity):
                     print(e)
                     print(e.args)
 
-    def energyDrain(self) -> None:
+    def energyDrain(self) -> None:                                      # -- Depletes player energy
         if self.player.powerTimerActive:
             self.player.energy -= self.energyConsumption
             print('drain')
 
-    def update(self) -> None:
+    def update(self) -> None:                                           # -- Updates once per frame
         if self.player.powerTimerActive:
             self.adjustPlacement()
             invoke(self.energyDrain, delay = 1)

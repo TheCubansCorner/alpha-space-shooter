@@ -11,7 +11,7 @@ from weapons import RegularBeam, SpeedBeam, SpreadBeam, PowerBeam
 
 
 class PlayerAnimator(SpriteSheetAnimation):
-    def __init__(self, *kwargs) -> None:                                        # -- Initiates Player Entity
+    def __init__(self, *kwargs) -> None:                                                                # -- Initiates Player Entity
         self.spriteVars()
         self.texture: str = self.spriteTextures["idle"]              # -- Built in variables
         self.animations: dict = self.spriteCommands["idle"]
@@ -32,10 +32,11 @@ class PlayerAnimator(SpriteSheetAnimation):
         self.type: str = "player"
         self.currentBeam: str = "regular"
 
-        self.powerTimerActive = False                               # -- Triggers
+        self.moving = False                                         # -- Triggers
+        self.powerTimerActive = False                               
         self.speedTimerActive = False
 
-    def spriteVars(self) -> None:                                               # -- Sets up sprite Sheet dictionaries
+    def spriteVars(self) -> None:                                                                       # -- Sets up sprite Sheet dictionaries
         self.spriteTextures = {                                                                         # - SpriteSheet Animations
             "idle" : os.path.join("assets", "player_sprites", "idle", "ship_spritesheet.png"),
             "powerBeamShip" : os.path.join("assets", "player_sprites", "beams", "power_beam_ship_spritesheet.png"),
@@ -57,7 +58,7 @@ class PlayerAnimator(SpriteSheetAnimation):
             "ship" : [6, 1]
         }
 
-    def spriteChangeController(self, spriteType, beamType) -> None:             # -- Adjusts active sprite sheets
+    def spriteChangeController(self, spriteType, beamType) -> None:                                     # -- Adjusts active sprite sheets
         if spriteType == "idle":                                    # -- Ship idle animations
             self.texture: str = self.spriteTextures["idle"]
             self.animations: dict = self.spriteCommands["idle"]
@@ -78,7 +79,7 @@ class PlayerAnimator(SpriteSheetAnimation):
             self.scale = 1
             self.tileset_size: list = self.tileSize["ship"]
 
-    def weaponControls(self) -> None:                                           # -- Manages Beam Controls (Power/Speed)
+    def weaponControls(self) -> None:                                                                   # -- Manages Beam Controls (Power/Speed)
         if held_keys["space"] and not self.powerTimerActive:
             if self.currentBeam == "speed" and self.energy >= 1 and not self.speedTimerActive:    # -- Speed beam
                 beam = SpeedBeam(self) 
@@ -91,10 +92,10 @@ class PlayerAnimator(SpriteSheetAnimation):
                 beamP = PowerBeam(self)
                 self.beams.append(beamP)
 
-    def movement(self) -> None:                                                 # -- Controls player movement
-        velocity: Vec2 = Vec2()                                     # -- Player movement vector
+    def movement(self) -> None:                                                                         # -- Controls player movement
+        velocity: Vec2 = Vec2()                     # -- Player movement vector
         
-        if held_keys["w"]:                                          # -- Controls player movement and rotation
+        if held_keys["w"]:                          # -- Controls player movement and rotation
             velocity.y += 1
             self.rotation_z = 0
         
@@ -122,16 +123,16 @@ class PlayerAnimator(SpriteSheetAnimation):
         if held_keys['s'] and held_keys['d']:
             self.rotation_z = 135
 
-        self.position += velocity * time.dt                         # -- Updates player position
+        self.position += velocity * time.dt         # -- Updates player position
     
-    def checkTimer(self) -> None:                                               # -- Checks player triggers
+    def checkTimer(self) -> None:                                                                       # -- Checks player triggers
         if self.powerTimerActive:                                   # -- Power beam timer
             self.powerTimerActive = False
 
         if self.speedTimerActive:                                   # -- Speed beam timerw
             self.speedTimerActive = False
 
-    def meterChecks(self) -> None:                                              # -- Checks player meters (health/energy)
+    def meterChecks(self) -> None:                                                                      # -- Checks player meters (health/energy)
         if self.health <= 0:                                        # -- Health Check
             self.visible = False
             self.disable = True
@@ -140,7 +141,7 @@ class PlayerAnimator(SpriteSheetAnimation):
             self.checkTimer()                
             self.currentBeam = "regular"                         
 
-    def input(self, key) -> None:                                               # -- Validates single button inputs (regular/spread/etc)
+    def input(self, key) -> None:                                                                       # -- Validates single button inputs (regular/spread/etc)
         if key == 'e':                                              # -- Controls Which beam is active
             self.currentBeam = "regular"
 
@@ -173,7 +174,7 @@ class PlayerAnimator(SpriteSheetAnimation):
         if key == "space up":                                       # -- Cancels Power beam
             self.checkTimer()
 
-    def update(self) -> None:                                                   # -- Updates on every Frame
+    def update(self) -> None:                                                                           # -- Updates on every Frame
         self.movement()
         self.weaponControls()
         self.meterChecks()
