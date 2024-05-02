@@ -1,46 +1,53 @@
 #! python3, ursina
-#! weapons.py -- entities for different beam variations
+#! weapon_animator.py -- Initiates Weapon Spritesheet Animator entity
 
-import sys, os, time
+import sys, os
 
 from ursina import *
 
-from weapon_animator import PowerBeamAnimator, SpeedBeamAnimator, SpreadBeamAnimator, RegularBeamAnimator
 
-
-#!TODO: -- go through Exceptions and create a log for tracking bugs
-#!TODO: -- Figure out why beams start slow unless repeatedly being fired
-#!TODO: -- Create combination beams
-
-class RegularBeam(Entity):
-    def __init__(self, player: Entity) -> None:                         # -- Initiates the Regular beam Entity
-        super().__init__()
-        self.player = player
-        self.model: str = "quad"
-        self.collider: str = "mesh"
-        self.color = color.white
-        self.scale: tuple = (.2, 0.2)
+class RegularBeam(SpriteSheetAnimation):
+    def __init__(self, player: Entity = Entity(), *kwargs) -> None:
+        self.texture: str = os.path.join("assets", "player_sprites", "beams", "regular_beam.png")
+        self.animations: dict = {
+                "regular" : ((0,0), (5,0))
+            }
+        super().__init__(texture = self.texture, animations = self.animations)
+        self.player: SpriteSheetAnimation = player
+        self.scale = 1
+        self.tileset_size: list = [4, 1]
+        self.fps: int = 8
         self.position: Vec3 = player.position
-        self.z: float = player.z - 0.01
-        self.rotation_z: int = player.rotation_z
-        self.color = color.rgba(0, 0, 0, 0)
-        
-        self.dx = 0.8 * math.sin(self.rotation_z / 180 * math.pi)
-        self.dy = 0.8 * math.cos(self.rotation_z / 180 * math.pi)
-        self.damage: int = 1
-        self.beamOrgin = self.position
-        self.beamAnimation = RegularBeamAnimator(beam = self)
+        self.z: float = player.Z
+        self.rotation_z = player.rotation_z
 
-        # TODO: Figure out issue with blast starting out slow
-        
+
+        self.type: str = "regular"
+        self.dx: float = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
+        self.dy: float = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
+        self.position.x = self.dx * 7
+        self.position.y = self.dy * 7
+        self._always_on_top = True
+        self.damage: int = 1
+        self.delay: int = 1
+        self.play_animation("regular")
+        self.beamOrgin = player.position
+
     def firingWeapon(self) -> None:                                     # -- Controls beams forward movement
         for beam in self.player.beams:
             if type(beam) != list:
-                self.z = self.player.z
+                self.checkDistance(beam)
+                #self.z = self.player.z
                 beam.x += beam.dx * time.dt
                 beam.y += beam.dy * time.dt
-                self.checkDistance(beam)
 
+    def update(self) -> None:                                           # -- Updates once a frame
+        self.firingWeapon()
+        self.rotation_z += 15
+
+        if not self.visible:
+            destroy(self)
+             
     def checkDistance(self, beam):                                      # -- Checks distance between orgin and current position/removes beam if distance is to far
         differenceX = beam.x - self.beamOrgin.x
         differenceY = beam.y - self.beamOrgin.y
@@ -52,163 +59,34 @@ class RegularBeam(Entity):
                 destroy(beam)
             except Exception as e:
                 print(e.__traceback__, "args =", e.args)
-            
-    def update(self) -> None:                                           # -- Updates once a frame
-        self.firingWeapon()
-
-        if not self.visible:
-            destroy(self)
 
 
-class SpeedBeam(Entity):
-    def __init__(self, player: Entity) -> None:                         # -- Initiates Speed beam Entity
-        super().__init__()
-        self.model: str = "quad"
-        self.collider: str = "quad"
-        self.scale: tuple = (0.2, 0.2)
+class PowerBeam(SpriteSheetAnimation):
+    def __init__(self, player: Entity = Entity(), *kwargs) -> None:           # Initiates Weapons animation spritesheet 
+        self.texture: str = os.path.join("assets", "player_sprites", "beams", "power_beam_spritesheet.png")
+        self.animations: dict = {
+                "power" : ((0,0), (5,0))
+            }
+        super().__init__(texture = self.texture, animations = self.animations)
+        self.player: SpriteSheetAnimation = player
+        self.scale = (1, 10.5)
+        self.tileset_size: list = [6, 1]
+        self.fps: int = 6
         self.position: Vec3 = player.position
         self.z: float = player.z
-        self.rotation_z: int = player.rotation_z
-        self._always_on_top = False
-        self.color = color.rgba(0, 0, 0, 0)
-
-        self.player = player
-        self.beamType = "speed"
-        self.damage: int = 2
-        self.energyConsumption = 1
-        self.dx = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
-        self.dy = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
-        self.beamOrgin: Vec3 = self.position
-
-        ###TEST###
-        self.beamAnimation = SpeedBeamAnimator(beam = self)
-        ###TEST###
-
-    def firingWeapon(self) -> None:                                     # -- Controls beams forward movement
-        try:
-            for beam in self.player.beams:
-                if type(beam) != list:
-                    self.z = self.player.z
-                    beam.x += beam.dx * time.dt
-                    beam.y += beam.dy * time.dt  
-                    self.checkDistance(beam)  
-        except Exception as e:
-            print(e)
-
-    def checkDistance(self, beam) -> None:                              # -- Checks distance between beam and beams start point
-        differenceX = beam.x - self.beamOrgin.x
-        differenceY = beam.y - self.beamOrgin.y
-        difference = (differenceX, differenceY)
-        
-        try:
-            if difference[1] >= 10 or difference[1] <= -10 or difference[0] >= 10 or difference[0] <= -10:
-                self.player.beams.remove(beam)
-                beam.visible = False
-                destroy(beam)
-        except Exception as e:
-            print(e.__traceback__, "args =", e.args)
-
-    def energyDrain(self) -> None:                                      # -- Depletes player energy
-        if self.player.speedTimerActive:
-            self.player.energy -= self.energyConsumption
-
-    def update(self) -> None:                                           # -- Updates once per frame
-        self.firingWeapon()
-        invoke(self.energyDrain, delay = 3)
-
-        if not self.visible:
-            try:
-                self.disable = True
-                self.visible = True
-                destroy(self)
-            except Exception as e:
-                print(e)
-            
-
-class SpreadBeam(Entity):
-    def __init__(self, player: Entity) -> None:                         # -- Initiates Spread Beam Entity
-        super().__init__()
-        self.model: str = "quad"                # - Built in variables
-        self.collider: str = "quad"
-        self.scale: tuple = (0.2, 0.2)
-        self.position: Vec3 = player.position
-        self.z: float = 1
-        self.rotation_z = player.rotation_z
-        self._always_on_top = False
-        self.color = color.rgba(0, 0, 0, 0)
-
-        self.player = player                    # - Personal variables
-        self.beamType = "spread"
-        self.damage: int = 2
-        self.energyConsumption: float = 1
-        self.dx = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
-        self.dy = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
-        self.beamOrgin: Vec3 = self.position
-        self.position.x = self.position.x + ((0.8 * math.sin(self.rotation_z / 180 * math.pi) * 0.5))
-        self.position.y = self.position.y + ((0.8 * math.cos(self.rotation_z / 180 * math.pi) * 0.5))
-        self.slug: list = []
-        self.rotationModifier = 45
-        self.beamAnimation = SpreadBeamAnimator(beam = self)
-
-    def firingWeapon(self) -> None:                                     # -- Controls beams forward movement
-        for slug in self.player.beams:
-            if type(slug) == list:
-                for beam in slug:
-                    beam.x += (0.8 * math.sin(beam.rotation_z / 180 * math.pi)) * time.dt
-                    beam.y += (0.8 * math.cos(beam.rotation_z / 180 * math.pi)) * time.dt
-
-    def checkDistance(self) -> None:                                    # -- Checks distance between beam and player and beams start point
-        for inx, slug in enumerate(self.player.beams):
-            if type(slug) == list:
-                for beam in slug:
-                    differenceX = beam.position.x - self.beamOrgin.x
-                    differenceY = beam.position.y - self.beamOrgin.y
-
-                    try:
-                        if differenceX >= 10 or differenceX <= -10 or differenceY >= 10 or differenceY <= -10:
-                            self.player.beams[inx].remove(beam)
-                            beam.visible = False
-                            destroy(beam)
-                    except Exception as e:
-                        print(e.__traceback__, "args =", e.args)
-
-    def update(self) -> None:                                           # -- Updates once per frame
-        self.firingWeapon()
-        self.checkDistance()
-
-        if not self.visible:
-            try:
-                self.disable = True
-                self.visible = True
-                destroy(self)
-            except Exception as e:
-                print(e.__traceback__, "args =", e.args)
+        self.rotation_z: float = player.rotation_z
+        self.always_on_top: bool = True
 
 
-class PowerBeam(Entity):
-    def __init__(self, player: Entity) -> None:                         # -- Initiates Power Beam Entity
-        super().__init__()
-        self.model: str = "quad"
-        self.collider: str = "box"
-        self.scale: tuple = (1, 10.5)
-        self.position: Vec3 = player.position
-        self.z: float = player.z
-        self.rotation_z = player.rotation_z
-        self._always_on_top = False
-        self.visible = True
-        self.texture = os.path.join("assets", "player_sprites", "beams", "alpha_model.png")
-        self.color = color.rgba(0, 0, 0, 0)
-
-        self.player = player
-        self.beamType: str = 'power'
+        self.type: str = "power"
         self.damage: int = 5
-        self.energyConsumption: float = 1
-        self.dx = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
-        self.dy = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
-        self.position.x = self.dx 
-        self.position.y = self.dy 
-        self._always_on_top = False
-        self.beamAnimation = PowerBeamAnimator(beam = self)
+        self.energyConsumption: float = 1.0
+        self.dx: float = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
+        self.dy: float = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
+        self.position.x = self.dx * 7
+        self.position.y = self.dy * 7
+        self._always_on_top = True
+        self.play_animation("power")
 
     def adjustPlacement(self) -> None:                                  # -- Adjusts beam position to match player sprite rotation/placement
         x = self.player.position.x + ((0.8 * math.sin(self.player.rotation_z / 180 * math.pi) * 7))
@@ -246,12 +124,141 @@ class PowerBeam(Entity):
                 destroy(self)
             except:
                 pass
-        
 
-        ###TEST###
-                  # <----Continue here
+
+class SpeedBeam(SpriteSheetAnimation):
+    def __init__(self, player: Entity = Entity(), *kwargs) -> None:           # Initiates Weapons animation spritesheet 
+        self.texture: str = os.path.join("assets", "player_sprites", "beams", "speed_beam.png")
+        self.animations: dict = {
+                "speed" : ((0 ,0), (5 ,0))
+            }
+        super().__init__(texture = self.texture, animations = self.animations)
+        self.player: SpriteSheetAnimation = player
+        self.scale = 1
+        self.tileset_size: list = [6, 1]
+        self.fps: int = 6
+        self.position: Vec3 = player.position
+        self.z: float = player.z
+        self.rotation_z = player.rotation_z
+        self._always_on_top = True
+
+        self.type: str = "speed"
+        self.damage: int = 2
+        self.energyConsumption: int = 1
+        self.dx: float = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
+        self.dy: float = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
+        self.position.x = self.dx * 7
+        self.position.y = self.dy * 7
+        self.beamOrgin = self.position
+    
+        self.play_animation("speed")
+
+    def firingWeapon(self) -> None:                                     # -- Controls beams forward movement
+        try:
+            for beam in self.player.beams:
+                if type(beam) != list:
+                    self.z = self.player.z
+                    beam.x += beam.dx * time.dt
+                    beam.y += beam.dy * time.dt  
+                    self.checkDistance(beam)  
+        except Exception as e:
+                print(e)
+
+    def checkDistance(self, beam) -> None:                              # -- Checks distance between beam and beams start point
+        differenceX = beam.x - self.beamOrgin.x
+        differenceY = beam.y - self.beamOrgin.y
+        difference = (differenceX, differenceY)
         
+        try:
+            if difference[1] >= 10 or difference[1] <= -10 or difference[0] >= 10 or difference[0] <= -10:
+                self.player.beams.remove(beam)
+                beam.visible = False
+                destroy(beam)
+        except Exception as e:
+            print(e.__traceback__, "args =", e.args)
+
+    def energyDrain(self) -> None:                                      # -- Depletes player energy
+        if self.player.speedTimerActive:
+            self.player.energy -= self.energyConsumption
+
+    def update(self) -> None:                                           # -- Updates once per frame
+        self.firingWeapon()
+        invoke(self.energyDrain, delay = 3)
+
+        if not self.visible:
+            try:
+                self.disable = True
+                self.visible = True
+                destroy(self)
+            except Exception as e:
+                print(e)
+            
+
+class SpreadBeam(SpriteSheetAnimation):
+    def __init__(self, player: Entity = Entity(), *kwargs) -> None:
+        self.texture: str = os.path.join("assets", "player_sprites", "beams", "spread_beam.png")
+        self.animations: dict = {
+                "spread" : ((0 ,0), (5, 0))
+            }
+        super().__init__(texture = self.texture, animations = self.animations)
+        self.player: SpriteSheetAnimation = player
+        self.scale: float = (1.75, 1.50)
+        self.tileset_size: list = [6, 1]
+        self.fps: int = 6
+        self.position: Vec3 = player.position
+        self.z = player.Z
+        self.rotation_z: float = player.rotation_z
+        self.always_on_top = True
+
+        self.type: str = "spread"
+        self.damage: int = 2
+        self.energyConsumption: float = 1
+        self.slug = []
+        self.rotationModifier = 45
+        self.beamOrgin: Vec3 = player.position
+        self.dx: float = 0.8 * math.sin(player.rotation_z / 180 * math.pi)
+        self.dy: float = 0.8 * math.cos(player.rotation_z / 180 * math.pi)
+        self.position.x = self.dx * 7
+        self.position.y = self.dy * 7
+        self.play_animation("spread")
+
+    def firingWeapon(self) -> None:                                     # -- Controls beams forward movement
+        for slug in self.player.beams:
+            if type(slug) == list:
+                for beam in slug:
+                    beam.x += (0.8 * math.sin(beam.rotation_z / 180 * math.pi)) * time.dt
+                    beam.y += (0.8 * math.cos(beam.rotation_z / 180 * math.pi)) * time.dt
+
+    def checkDistance(self) -> None:                                    # -- Checks distance between beam and player and beams start point
+        for inx, slug in enumerate(self.player.beams):
+            if type(slug) == list:
+                for beam in slug:
+                    differenceX = beam.position.x - self.beamOrgin.x
+                    differenceY = beam.position.y - self.beamOrgin.y
+
+                    try:
+                        if differenceX >= 10 or differenceX <= -10 or differenceY >= 10 or differenceY <= -10:
+                            self.player.beams[inx].remove(beam)
+                            beam.visible = False
+                            destroy(beam)
+                    except Exception as e:
+                        print(e.__traceback__, "args =", e.args)
+
+    def update(self) -> None:                                           # -- Updates once per frame
+        self.firingWeapon()
+        self.checkDistance()
+
+        if not self.visible:
+            try:
+                self.disable = True
+                self.visible = True
+                destroy(self)
+            except Exception as e:
+                print(e.__traceback__, "args =", e.args)
+
 
 if __name__ == "__main__":
     app = Ursina()
-    app.run()
+    y = Entity()
+    x = RegularBeam(player = y)
+    sys.exit(app.run())

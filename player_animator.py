@@ -5,6 +5,7 @@
 import sys, os
 
 from ursina import *
+from ursina.prefabs.trail_renderer import TrailRenderer
 
 from weapons import RegularBeam, SpeedBeam, SpreadBeam, PowerBeam
 
@@ -22,9 +23,9 @@ class PlayerAnimator(SpriteSheetAnimation):
         self.always_on_top: bool = True
         self.play_animation("speed")
 
-        ###TEST###
         self.health: int = 3                                        # -- Private variables
         self.score: int = 0
+        self.speed: int = 3
         self.energy: float = 10
         self.currentRotation: float = 0
         self.beams: list = []
@@ -33,6 +34,7 @@ class PlayerAnimator(SpriteSheetAnimation):
         self.currentShipFormation = "speed"
 
         self.moving = False                                         # -- Triggers
+        self.regularTimerActive = False
         self.powerTimerActive = False                               
         self.speedTimerActive = False
 
@@ -79,7 +81,7 @@ class PlayerAnimator(SpriteSheetAnimation):
             self.scale = 1
             self.tileset_size: list = self.tileSize["ship"]
 
-    def weaponControls(self) -> None:                                                                   # -- Manages Beam Controls (Power/Speed)
+    def weaponControls(self) -> None:                                                                   # -- Manages Beam Controls (Power/Speed) wd
         if held_keys["space"] and not self.powerTimerActive:
             if self.currentBeam == "speed" and self.energy >= 1 and not self.speedTimerActive:    # -- Speed beam
                 beam = SpeedBeam(self) 
@@ -99,19 +101,19 @@ class PlayerAnimator(SpriteSheetAnimation):
         velocity: Vec2 = Vec2()                     # -- Player movement vector
         
         if held_keys["w"]:                          # -- Controls player movement and rotation
-            velocity.y += 1
+            velocity.y += self.speed
             self.rotation_z = 0
         
         if held_keys['s']:
-            velocity.y -= 1
+            velocity.y -= self.speed
             self.rotation_z = 180
 
         if held_keys['d']:
-            velocity.x += 1
+            velocity.x += self.speed
             self.rotation_z = 90
 
         if held_keys['a']:
-            velocity.x -= 1
+            velocity.x -= self.speed
             self.rotation_z = 270
 
         if held_keys['w'] and held_keys['a']:
@@ -126,13 +128,16 @@ class PlayerAnimator(SpriteSheetAnimation):
         if held_keys['s'] and held_keys['d']:
             self.rotation_z = 135
 
-        self.position += velocity * time.dt         # -- Updates player position
+        self.position += (velocity) * time.dt         # -- Updates player position
     
     def checkTimer(self) -> None:                                                                       # -- Checks player triggers
+        if self.regularTimerActive:                                 # -- Regular beam timer
+            self.regularTimerActive = False
+
         if self.powerTimerActive:                                   # -- Power beam timer
             self.powerTimerActive = False
 
-        if self.speedTimerActive:                                   # -- Speed beam timerw
+        if self.speedTimerActive:                                   # -- Speed beam timer
             self.speedTimerActive = False
 
     def meterChecks(self) -> None:                                                                      # -- Checks player meters (health/energy)
@@ -145,41 +150,45 @@ class PlayerAnimator(SpriteSheetAnimation):
             self.currentBeam = "regular"                         
 
     def input(self, key) -> None:                                                                       # -- Validates single button inputs (regular/spread/etc)
-        if key == 'e':                                              # -- Controls Which beam is active
-            self.currentBeam = "regular"
+        if not self.powerTimerActive:
+            if key == 'e':                                              # -- Controls Which beam is active
+                self.currentBeam = "regular"
 
-        if key == '1':                  
-            self.currentBeam = "speed"
-            self.play_animation(self.currentBeam)
-        
-        if key == '2':
-            self.currentBeam = "spread"
-            self.play_animation(self.currentBeam)
+            if key == '1':                  
+                self.currentBeam = "speed"
+                self.play_animation(self.currentBeam)
+            
+            if key == '2':
+                self.currentBeam = "spread"
+                self.play_animation(self.currentBeam)
 
-        if key == '3':
-            self.currentBeam = "power"
-            self.play_animation(self.currentBeam)
+            if key == '3':
+                self.currentBeam = "power"
+                self.play_animation(self.currentBeam)
 
-        if key == "space" and not self.powerTimerActive:                                          # -- Controls Beams (Regular/Spread)
-            if self.energy <= 1 or self.currentBeam == "regular":
-                beam = RegularBeam(player = self)
-                self.beams.append(beam)
+            if key == "space":                                          # -- Controls Beams (Regular/Spread)
+                if (self.energy <= 1 or self.currentBeam == "regular") and not self.regularTimerActive:
+                    beam = RegularBeam(player = self)
+                    self.beams.append(beam)
+                    self.regularTimerActive = True
+                    invoke(self.checkTimer, delay = 0.25)
+                    return
 
-            if self.energy >= 2 and self.currentBeam == "spread":
-                modifiedRotation = -45
-                slug: list = []
+                if self.energy >= 2 and self.currentBeam == "spread":
+                    modifiedRotation = -45
+                    slug: list = []
 
-                for _ in range(9):                                  # -- Loads a slug of beams
-                    beam = SpreadBeam(self)
-                    beam.rotation_z += modifiedRotation
-                    slug.append(beam)
-                    modifiedRotation += 11.25
-                self.beams.append(slug)
-                self.energy -= beam.energyConsumption
-                self.spriteController("ship", "spread")
+                    for _ in range(9):                                  # -- Loads a slug of beams
+                        beam = SpreadBeam(self)
+                        beam.rotation_z += modifiedRotation
+                        slug.append(beam)
+                        modifiedRotation += 11.25
+                    self.beams.append(slug)
+                    self.energy -= beam.energyConsumption
+                    self.spriteController("ship", "spread")
 
 
-        if key == "space up":                                       # -- Cancels Power beam
+        if key == "space up" and self.powerTimerActive:                                       # -- Cancels Power beam
             self.checkTimer()
 
     def update(self) -> None:                                                                           # -- Updates on every Frame
@@ -193,6 +202,7 @@ class PlayerAnimator(SpriteSheetAnimation):
 
 if __name__ == "__main__":
     app = Ursina()
+    EditorCamera()
     bg = Entity(model = "quad", color = color.black, scale = 200, z = 4)
     block = Entity(model = "quad", color = color.green, scale = 1, z = 3)
     player = PlayerAnimator()
